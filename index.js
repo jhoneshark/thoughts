@@ -61,6 +61,6 @@ conn
 // .sync({ force: true })
 .sync()
 .then(() => {
-    app.listen(3000)
+    app.listen(5000)
 })
 .catch((err) => console.log(err))
