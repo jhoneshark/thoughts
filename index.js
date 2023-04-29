@@ -70,8 +70,17 @@ app.use("/", authRoutes);
 app.get("/", ToughController.showToughts);
 
 conn
+<<<<<<< HEAD
   .sync()
   .then(() => {
     app.listen(3000);
   })
   .catch((err) => console.log(err));
+=======
+// .sync({ force: true })
+.sync()
+.then(() => {
+    app.listen(5000)
+})
+.catch((err) => console.log(err))
+>>>>>>> 50c1c078cbe3b87da0c0d70d23002cff0f7e3168
