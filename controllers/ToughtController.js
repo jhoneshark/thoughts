@@ -3,126 +3,130 @@ const User = require('../models/User')
 
 const { Op } = require('sequelize')
 
-module.exports = class ToughtController {
-    static async showToughts(req, res) {
+module.exports = class ToughController {
+  static async dashboard(req, res) {
+    const userId = req.session.userid
 
-        let search = ''
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+      include: Tought,
+      plain: true,
+    })
 
-        if(req.query.search){
-            search = req.query.search
-        }
+    const toughts = user.Toughts.map((result) => result.dataValues)
 
-        let order = 'DESC'
+    let emptyToughts = true
 
-        if(req.query.order === 'old'){
-            order = 'ASC'
-        } else {
-            order = 'DESC'
-        }
+    if (toughts.length > 0) {
+      emptyToughts = false
+    }
 
-        const toughtsData = await Tought.findAll({
-            include: User,
-            where: {
-                title: { [Op.like]: `%${ search }%` },
-            }, 
-            order: [['createdAt', order]]
+    console.log(toughts)
+    console.log(emptyToughts)
+
+    res.render('toughts/dashboard', { toughts, emptyToughts })
+  }
+
+  static createTought(req, res) {
+    res.render('toughts/create')
+  }
+
+  static createToughtSave(req, res) {
+    const tought = {
+      title: req.body.title,
+      UserId: req.session.userid,
+    }
+
+    Tought.create(tought)
+      .then(() => {
+        req.flash('message', 'Pensamento criado com sucesso!')
+        req.session.save(() => {
+          res.redirect('/toughts/dashboard')
         })
-        const toughts = toughtsData.map((result) => result.get({ plain: true }))
+      })
+      .catch((err) => console.log())
+  }
 
-        let toughtsQty = toughts.length
+  static showToughts(req, res) {
+    console.log(req.query)
 
-        //para imprimir zero
-        if(toughtsQty === 0) {
-            toughtsQty = false
-        }
+    // check if user is searching
+    let search = ''
 
-        res.render('toughts/home', { toughts, search , toughtsQty})
+    if (req.query.search) {
+      search = req.query.search
     }
 
-    static async dashboard(req, res){
-        const userId = req.session.userid
+    // order results, newest first
+    let order = 'DESC'
 
-        const user = await User.findOne({where : {id: userId}, include:Tought, plain:true})
-
-        if(!user) {
-            res.redirect('/login')
-        }
-
-        const toughts = user.Toughts.map((result) => result.dataValues)
-
-        let emptyToughts = false
-
-        if(toughts.length === 0){
-            emptyToughts = true
-        }
-
-        res.render('toughts/dashboard', {toughts, emptyToughts})
+    if (req.query.order === 'old') {
+      order = 'ASC'
+    } else {
+      order = 'DESC'
     }
 
-    static createTought(req, res){
-        res.render('toughts/create')
-    }
+    Tought.findAll({
+      include: User,
+      where: {
+        title: { [Op.like]: `%${search}%` },
+      },
+      order: [['createdAt', order]],
+    })
+      .then((data) => {
+        let toughtsQty = data.length
 
-    static async createToughtSave(req, res){
-        const toughts = {
-            title: req.body.title,
-            UserId: req.session.userid
+        if (toughtsQty === 0) {
+          toughtsQty = false
         }
 
-        try {
-            await Tought.create(toughts)
+        const toughts = data.map((result) => result.get({ plain: true }))
 
-            req.flash('message', 'Pensamento criado com sucesso!')
+        res.render('toughts/home', { toughts, toughtsQty, search })
+      })
+      .catch((err) => console.log(err))
+  }
 
-            req.session.save(() => {
-                res.redirect('/toughts/dashboard')
-            })
-        } catch (error) {
-            console.log(error)
-        }
+  static removeTought(req, res) {
+    const id = req.body.id
+
+    Tought.destroy({ where: { id: id } })
+      .then(() => {
+        req.flash('message', 'Pensamento removido com sucesso!')
+        req.session.save(() => {
+          res.redirect('/toughts/dashboard')
+        })
+      })
+      .catch((err) => console.log())
+  }
+
+  static updateTought(req, res) {
+    const id = req.params.id
+
+    Tought.findOne({ where: { id: id }, raw: true })
+      .then((tought) => {
+        res.render('toughts/edit', { tought })
+      })
+      .catch((err) => console.log())
+  }
+
+  static updateToughtPost(req, res) {
+    const id = req.body.id
+
+    const tought = {
+      title: req.body.title,
+      description: req.body.description,
     }
 
-    static async removeTought(req, res){
-
-        const id = req.body.id
-        const UserId = req.session.userid
-
-        try {
-            await Tought.destroy({where: {id: id, UserId: UserId}})
-            req.flash('message','Pensamento removido!')
-            req.session.save(() => {
-                res.redirect('/toughts/dashboard')
-            })
-        } catch (error) {
-            console.log(error)
-        }
-    }
-
-    static async updateTought(req, res) {
-        const id = req.params.id
-        Tought.findOne({ where: { id: id }, raw: true })
-            .then((tought) => {
-                res.render('toughts/edit', { tought })
-            })
-            .catch((err) => console.log())
-    }
-
-    static async updateToughtSave(req, res){
-
-        const id = req.body.id
-
-        const tought = {
-            title: req.body.title
-        }
-
-        try {
-            await Tought.update(tought, { where: { id: id } })
-            req.flash('message', 'Atualizado!')
-            req.session.save(() => {
-                res.redirect('/toughts/dashboard')
-            })
-        } catch (error) {
-            console.log(error)
-        }
-    }
+    Tought.update(tought, { where: { id: id } })
+      .then(() => {
+        req.flash('message', 'Pensamento atualizado com sucesso!')
+        req.session.save(() => {
+          res.redirect('/toughts/dashboard')
+        })
+      })
+      .catch((err) => console.log())
+  }
 }
