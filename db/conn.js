@@ -1,8 +1,8 @@
 const { Sequelize } = require('sequelize')
 
-const sequelize = new Sequelize('taplfzln','taplfzln','jCYeK0AsgBLBOmvM2e-ZE1Zl8FQ8GAiM', {
-    host:'babar.db.elephantsql.com',
-    dialect: 'postgres',
+const sequelize = new Sequelize('','','', {
+    host:'',
+    dialect: '',
     dialectOptions: {
         ssl: {
             require: true,
