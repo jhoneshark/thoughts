@@ -83,6 +83,6 @@ app.get("/", ToughController.showToughts);
 conn
   .sync()
   .then(() => {
-    app.listen(8080);
+    app.listen(3000);
   })
   .catch((err) => console.log(err));
